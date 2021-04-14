@@ -58,6 +58,13 @@ export class CdkLambdaEdgeWorkshop01Stack extends cdk.Stack {
       code: new lambda.InlineCode(fs.readFileSync('src/edge-lambdas/lambda-at-edge-dynamic-origin.js', { encoding: 'utf-8' })),
     });
 
+    // Edge Lambda for use with cloudfront distribution - add security headers
+    const acceptedLanguage = new cloudfront.experimental.EdgeFunction(this, 'AcceptedLanguage', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: 'index.handler',
+      code: new lambda.InlineCode(fs.readFileSync('src/edge-lambdas/lambda-at-edge-accepted-language.js', { encoding: 'utf-8' })),
+    });
+
     // Create Cloudfront Origin for S3 bucket
     const cloudfrontDistro = new cloudfront.Distribution(this, 'WorkshopDist', {
       defaultBehavior: {
@@ -72,6 +79,10 @@ export class CdkLambdaEdgeWorkshop01Stack extends cdk.Stack {
         }),
         edgeLambdas: [
           {
+            eventType: cloudfront.LambdaEdgeEventType.VIEWER_REQUEST,
+            functionVersion: acceptedLanguage.currentVersion
+          },
+          {
             eventType: cloudfront.LambdaEdgeEventType.ORIGIN_RESPONSE,
             functionVersion: securityHeaders.currentVersion
           },
@@ -84,7 +95,6 @@ export class CdkLambdaEdgeWorkshop01Stack extends cdk.Stack {
       },
       defaultRootObject: 'index.html'
     });
-
 
   }
 }
